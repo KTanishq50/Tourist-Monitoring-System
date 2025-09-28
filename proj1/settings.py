@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['Tourist-Monitoring-System.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['Tourist-Monitoring-System.onrender.com', 'localhost', '127.0.0.1']
 
 
 
