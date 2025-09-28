@@ -1,0 +1,248 @@
+
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Zones</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_API_KEY }}&libraries=drawing"></script>
+    <style>
+        #map {
+            height: 90vh;
+            width: 100%;
+        }
+        #controls {
+            margin: 10px;
+        }
+        select, input, button {
+            margin-right: 10px;
+            padding: 5px;
+        }
+        #info-box {
+            background: white;
+            padding: 8px;
+            border: 1px solid #ccc;
+            display: none;
+            position: absolute;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <h2>Authority Dashboard</h2>
+    <div id="controls">
+        <input type="text" id="zone-name" placeholder="Enter zone name" required />
+        <select id="zone-type">
+            <option value="safe">Safe Zone</option>
+            <option value="unsafe">Unsafe Zone</option>
+            <option value="restricted">Restricted Zone</option>
+        </select>
+        <button id="save-zone">Save Zone</button>
+    </div>
+    <div id="map"></div>
+
+    
+    <div id="info-box">
+        <label>Name: <input type="text" id="edit-name"></label><br>
+        <label>Type: 
+            <select id="edit-type">
+                <option value="safe">Safe</option>
+                <option value="unsafe">Unsafe</option>
+                <option value="restricted">Restricted</option>
+            </select>
+        </label><br>
+        <button id="update-zone">Update</button>
+        <button id="delete-zone">Delete</button>
+    </div>
+
+    <script>
+        let map, drawingManager, selectedShape;
+        let savedZones = [];
+        let currentPolygon = null;
+        let currentZoneId = null;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 18.5204, lng: 73.8567 }, // Example: Pune
+                zoom: 12,
+            });
+
+            drawingManager = new google.maps.drawing.DrawingManager({
+                drawingMode: google.maps.drawing.OverlayType.POLYGON,
+                drawingControl: true,
+                drawingControlOptions: {
+                    position: google.maps.ControlPosition.TOP_CENTER,
+                    drawingModes: ['polygon'],
+                },
+            });
+
+            drawingManager.setMap(map);
+
+            google.maps.event.addListener(drawingManager, "overlaycomplete", function (event) {
+                if (event.type === "polygon") {
+                    if (selectedShape) {
+                        selectedShape.setMap(null); 
+                    }
+                    selectedShape = event.overlay;
+                    drawingManager.setDrawingMode(null);
+                }
+            });
+
+            loadZones();
+        }
+
+      
+        document.getElementById("save-zone").addEventListener("click", function () {
+            if (!selectedShape) {
+                alert("Please draw a polygon first.");
+                return;
+            }
+
+            const name = document.getElementById("zone-name").value.trim();
+            const type = document.getElementById("zone-type").value;
+
+            if (!name) {
+                alert("Zone name is required.");
+                return;
+            }
+
+            const path = selectedShape.getPath().getArray().map(coord => ({
+                lat: coord.lat(),
+                lng: coord.lng()
+            }));
+
+            fetch("/api/zones/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    name: name,
+                    zone_type: type,
+                    geom: { type: "Polygon", coordinates: [path.map(p => [p.lng, p.lat])] },
+                }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("Zone saved successfully!");
+                selectedShape.setMap(null); 
+                selectedShape = null;
+                document.getElementById("zone-name").value = "";
+                loadZones(); 
+            });
+        });
+
+        
+        function loadZones() {
+            fetch("/api/zones/")
+                .then(res => res.json())
+                .then(zones => {
+                    savedZones.forEach(zone => zone.setMap(null)); 
+                    savedZones = [];
+
+                    zones.forEach(zone => {
+                        const coords = zone.geom.coordinates[0].map(c => ({ lat: c[1], lng: c[0] }));
+                        const polygon = new google.maps.Polygon({
+                            paths: coords,
+                            strokeColor: getColor(zone.zone_type),
+                            fillColor: getColor(zone.zone_type),
+                            fillOpacity: 0.4,
+                            map: map,
+                        });
+
+                        polygon.zoneId = zone.id;
+                        polygon.zoneName = zone.name;
+                        polygon.zoneType = zone.zone_type;
+
+                        google.maps.event.addListener(polygon, "click", (event) => {
+                            currentPolygon = polygon;
+                            currentZoneId = zone.id;
+
+                            document.getElementById("edit-name").value = polygon.zoneName;
+                            document.getElementById("edit-type").value = polygon.zoneType;
+
+                            const infoBox = document.getElementById("info-box");
+                            infoBox.style.display = "block";
+                            infoBox.style.left = event.domEvent.clientX + "px";
+                            infoBox.style.top = event.domEvent.clientY + "px";
+                        });
+
+                        savedZones.push(polygon);
+                    });
+                });
+        }
+
+        
+        document.getElementById("update-zone").addEventListener("click", function () {
+            if (!currentPolygon || !currentZoneId) return;
+
+            const newName = document.getElementById("edit-name").value;
+            const newType = document.getElementById("edit-type").value;
+
+            const path = currentPolygon.getPath().getArray().map(coord => ({
+                lat: coord.lat(),
+                lng: coord.lng()
+            }));
+
+            fetch(`/api/zones/${currentZoneId}/`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    name: newName,
+                    zone_type: newType,
+                    geom: { type: "Polygon", coordinates: [path.map(p => [p.lng, p.lat])] },
+                }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("Zone updated!");
+                document.getElementById("info-box").style.display = "none";
+                loadZones();
+            });
+        });
+
+        
+        document.getElementById("delete-zone").addEventListener("click", function () {
+            if (!currentPolygon || !currentZoneId) return;
+
+            fetch(`/api/zones/${currentZoneId}/`, {
+                method: "DELETE",
+                headers: { "X-CSRFToken": getCSRFToken() },
+            })
+            .then(() => {
+                alert("Zone deleted!");
+                document.getElementById("info-box").style.display = "none";
+                loadZones();
+            });
+        });
+
+        function getColor(type) {
+            return type === "safe" ? "#00FF00" : type === "unsafe" ? "#FF0000" : "#FFFF00";
+        }
+
+      
+        function getCSRFToken() {
+            let cookieValue = null;
+            const name = "csrftoken";
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let cookie of cookies) {
+                    cookie = cookie.trim();
+                    if (cookie.startsWith(name + "=")) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>

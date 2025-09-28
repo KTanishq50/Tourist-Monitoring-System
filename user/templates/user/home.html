@@ -1,0 +1,23 @@
+{% block title %}Welcome{% endblock %}
+{% block content %}
+<div style="min-height:100vh; display:flex; justify-content:center; align-items:center; background:linear-gradient(135deg, #1e3c72, #2a5298);">
+    <div class="card" style="max-width:700px; width:90%; text-align:center; padding:40px; background:linear-gradient(135deg, #00c6ff, #0072ff); border-radius:20px; box-shadow:0 8px 30px rgba(0,0,0,0.35); color:white;">
+        
+        <h2 style="margin-bottom:15px; font-weight:600;">Welcome to the Tourist System</h2>
+        <p style="font-size:16px; margin-bottom:25px;">Please choose an option to continue:</p>
+
+        <div style="margin-top:20px; display:flex; justify-content:center; gap:20px;">
+            <a href="{% url 'user:login' %}">
+                <button style="padding:12px 25px; font-size:16px; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,0.35);">
+                    🔑 Login
+                </button>
+            </a>
+            <a href="{% url 'user:register' %}">
+                <button style="padding:12px 25px; font-size:16px; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,0.35);">
+                    📝 Register
+                </button>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

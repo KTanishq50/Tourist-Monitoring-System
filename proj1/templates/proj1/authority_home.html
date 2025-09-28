@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authority Panel</title>
+</head>
+<body style="margin:0; font-family:Arial, sans-serif; background:#0d0d0d; color:#e0e0e0; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; text-align:center;">
+    <div style="background:#111; padding:40px; border-radius:15px; box-shadow:0 6px 20px rgba(0,255,0,0.15); max-width:500px; width:100%;">
+        <h2 style="color:#00e676; margin-bottom:20px;">Authority Dashboard</h2>
+        <p style="margin-bottom:25px; font-size:16px; color:#ccc;">Select an option:</p>
+
+        <div style="display:flex; flex-direction:column; gap:15px;">
+            <a href="{% url 'zones:zones_dashboard' %}">
+                <button style="background:#00e676; color:#000; padding:12px 25px; border:none; border-radius:8px; font-size:16px; cursor:pointer; width:100%;">Zone Dashboard</button>
+            </a>
+
+            <a href="{% url 'track:authority_map' %}">
+                <button style="background:#00e676; color:#000; padding:12px 25px; border:none; border-radius:8px; font-size:16px; cursor:pointer; width:100%;">Live Tracking</button>
+            </a>
+
+            <a href="{% url 'blockchain:blockchain_dashboard' %}">
+                <button style="background:#00e676; color:#000; padding:12px 25px; border:none; border-radius:8px; font-size:16px; cursor:pointer; width:100%;">Blockchain</button>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Live User Tracking</title>
+    <style>
+        body { margin:0; font-family:Arial,sans-serif; background:#0d0d0d; color:#e0e0e0; }
+        h2 { padding:12px; background:#00e676; color:#000; margin:0; text-align:center; }
+        #map { height:90vh; width:100%; border-radius:0 0 12px 12px; }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_API_KEY }}"></script>
+</head>
+<body>
+    <h2>Live User Tracking (Authority View)</h2>
+    <div id="map"></div>
+
+    <script>
+        let map; let markers={};
+        function initMap() {
+            map=new google.maps.Map(document.getElementById("map"),{
+                center:{lat:20.5937,lng:78.9629},zoom:5,
+                styles:[{elementType:"geometry",stylers:[{color:"#1a1a1a"}]},{elementType:"labels.text.fill",stylers:[{color:"#00e676"}]},{featureType:"water",stylers:[{color:"#0d0d0d"}]}]
+            });
+            fetchLocations(); setInterval(fetchLocations,5000);
+        }
+        function fetchLocations() {
+            fetch("{% url 'track:get_locations' %}")
+            .then(res=>res.json())
+            .then(data=>{
+                data.locations.forEach(user=>{
+                    const pos={lat:parseFloat(user.latitude),lng:parseFloat(user.longitude)};
+                    const username=user.user__username;
+                    if(markers[username]){ markers[username].setPosition(pos); }
+                    else{ markers[username]=new google.maps.Marker({position:pos,map:map,title:username,icon:{path:google.maps.SymbolPath.CIRCLE,scale:6,fillColor:"#00e676",fillOpacity:1,strokeWeight:1,strokeColor:"#000"}});}
+                });
+            });
+        }
+        window.onload=initMap;
+    </script>
+</body>
+</html>

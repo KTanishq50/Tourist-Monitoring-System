@@ -1,0 +1,53 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environment
+.venv/
+env/
+venv/
+
+# Ignore database
+db.sqlite3
+
+# Ignore media
+media/
+
+# Ignore environment variables
+.env
+
+# Ignore compiled/temporary files
+*.log
+*.pot
+*.pyc
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+develop-eggs/
+.eggs/
+*.manifest
+*.spec
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node modules
+node_modules/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Ignore Django migrations (except __init__.py)
+**/migrations/
+!**/migrations/__init__.py
+
+# Ignore blockchain build files (compiled/deployed contracts)
+blockchain/build/

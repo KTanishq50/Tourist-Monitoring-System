@@ -1,0 +1,21 @@
+{% extends "user/base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div style="max-width:800px; margin:40px auto; padding:35px; background:linear-gradient(135deg, #00c6ff, #0072ff); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.35); text-align:center; border:1px solid #0099e6; transition:0.3s; color:white;">
+    
+    <h2 style="margin-bottom:15px; font-weight:600;">Welcome to your Dashboard, {{ user.username }}</h2>
+    <p style="font-size:16px; margin-bottom:25px;">Your location is being tracked for safety.</p>
+
+    {% if profile.qr_code %}
+        <h3 style="margin-bottom:15px; font-weight:600;">Your Tourist QR Code</h3>
+        <img src="{{ profile.qr_code.url }}" alt="Your QR Code" style="width:250px;height:250px; border-radius:15px; box-shadow:0 6px 20px rgba(0,0,0,0.3);">
+    {% endif %}
+
+    <a href="{% url 'routing:map_input' %}">
+        <button style="margin-top:25px; padding:12px 25px; font-size:16px; font-weight:500; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,0.35);">
+            Plan Route
+        </button>
+    </a>
+</div>
+{% endblock %}

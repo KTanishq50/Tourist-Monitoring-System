@@ -1,0 +1,138 @@
+{% extends "user/base.html" %}
+{% block title %}Select Route{% endblock %}
+{% block content %}
+
+<div style="display:flex; flex-direction:column; align-items:center; min-height:90vh; padding:40px; background:#f0f4f8;">
+  <div style="background:#fff; border-radius:20px; box-shadow:0 8px 24px rgba(0,0,0,0.15); padding:40px; width:100%; max-width:1200px; text-align:center;">
+    <h2 style="margin-bottom:30px; color:#1d3557; font-size:28px;">Select Start and Destination</h2>
+
+    {% if not ranked_routes %}
+   
+    <div style="margin-bottom:25px; font-size:16px; color:#333;">
+      <label style="margin-right:30px;"><input type="radio" name="select_point" id="select_start" checked> Start</label>
+      <label><input type="radio" name="select_point" id="select_dest"> Destination</label>
+    </div>
+
+    <div id="map" style="height:600px; width:100%; margin-bottom:30px; border-radius:15px;"></div>
+
+    <form method="POST" action="{% url 'routing:map_input' %}">
+      {% csrf_token %}
+      <input type="hidden" name="start_lat" id="start_lat">
+      <input type="hidden" name="start_lng" id="start_lng">
+      <input type="hidden" name="dest_lat" id="dest_lat">
+      <input type="hidden" name="dest_lng" id="dest_lng">
+      <button type="submit" style="background:#4B0082; color:white; font-size:16px; padding:14px 28px; border-radius:10px; cursor:pointer;">
+        Get Routes
+      </button>
+    </form>
+    {% endif %}
+
+    {% if error %}
+      <p style="color:red; margin-top:20px;">{{ error }}</p>
+    {% endif %}
+
+    {% if ranked_routes %}
+    <h3 style="margin-top:40px; color:#1d3557; font-size:24px;">Route Visualization</h3>
+    <div id="map_routes" style="height:600px; width:100%; margin-bottom:15px; border-radius:15px;"></div>
+
+    {{ ranked_routes|json_script:"rankedRoutes" }}
+    {{ features_list|json_script:"featuresList" }}
+
+    <div id="route_scores" style="background:#e0e7ff; padding:15px; border-radius:12px; margin-top:10px; display:flex; justify-content:space-around; font-size:16px;">
+     
+    </div>
+
+    <script>
+      window.addEventListener("DOMContentLoaded", function() {
+        const mapRoutes = new google.maps.Map(document.getElementById("map_routes"), { center:{lat:20,lng:77}, zoom:6 });
+        const colors = ["#90EE90","#008000","#4B0082"]; // bottom → light green, green, top → purple
+        const rankedRoutes = JSON.parse(document.getElementById("rankedRoutes").textContent);
+        const featuresList = JSON.parse(document.getElementById("featuresList").textContent);
+
+        const bounds = new google.maps.LatLngBounds();
+
+      
+        const sorted = rankedRoutes.slice().sort((a,b) => b[1]-a[1]);
+
+   
+        sorted.forEach((route, idx) => {
+          const routeIdx = route.route_index ?? route[0];
+          const coords = featuresList[routeIdx]?.geometry;
+          if (!coords || coords.length === 0) return;
+
+          const path = coords.map(c => ({ lat: c[0], lng: c[1] }));
+          path.forEach(p => bounds.extend(p));
+
+          new google.maps.Polyline({
+            path: path,
+            geodesic: true,
+            strokeColor: colors[idx] || "#000",
+            strokeOpacity: 0.95,
+            strokeWeight: 10,
+            map: mapRoutes,
+            zIndex: idx+1
+          });
+
+          if(idx===0){
+            new google.maps.Marker({ position:path[0], map:mapRoutes, label:"S" });
+            new google.maps.Marker({ position:path[path.length-1], map:mapRoutes, label:"D" });
+          }
+        });
+
+        if (!bounds.isEmpty()) mapRoutes.fitBounds(bounds);
+
+      
+        const scoresDiv = document.getElementById("route_scores");
+        for(let i=0; i<3; i++){
+          let div = document.createElement("div");
+          div.style.padding = "8px 12px";
+          div.style.background = "white";
+          div.style.borderRadius = "8px";
+          div.style.boxShadow = "0 3px 6px rgba(0,0,0,0.1)";
+          div.style.color = colors[i] || "#555";
+
+          if(i < sorted.length){
+            div.textContent = `Route ${i+1}: ${sorted[i][1].toFixed(2)}`;
+          } else {
+            div.textContent = `Route ${i+1}: Absent`;
+          }
+
+          scoresDiv.appendChild(div);
+        }
+      });
+    </script>
+    {% endif %}
+  </div>
+</div>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_API_KEY }}"></script>
+
+{% if not ranked_routes %}
+<script>
+let map = new google.maps.Map(document.getElementById("map"), { center:{lat:20,lng:77}, zoom:5 });
+let markers = [];
+
+map.addListener("click", function(e) {
+  let lat = e.latLng.lat(), lng = e.latLng.lng();
+  let selectingStart = document.getElementById("select_start").checked;
+
+  if (selectingStart && markers[0]) markers[0].setMap(null);
+  if (!selectingStart && markers[1]) markers[1].setMap(null);
+
+  const marker = new google.maps.Marker({ position:{lat:lat,lng:lng}, map:map });
+
+  if (selectingStart) {
+    document.getElementById("start_lat").value = lat;
+    document.getElementById("start_lng").value = lng;
+    markers[0] = marker;
+    document.getElementById("select_dest").checked = true;
+  } else {
+    document.getElementById("dest_lat").value = lat;
+    document.getElementById("dest_lng").value = lng;
+    markers[1] = marker;
+  }
+});
+</script>
+{% endif %}
+
+{% endblock %}
